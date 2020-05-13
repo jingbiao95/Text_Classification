@@ -51,8 +51,10 @@ class DataSet():
         self.min_count = 1  # 词频最小次数
 
         self.vocab = self.build_vocab()  # 获得词表(有次序的)
-        self.embeding_path = "datasets/embed/sgns.sogou.char"
-        self.embeding = build_embeding(self.data_name, self.vocab)  # 加载词向量
+        self.sogo_embeding_path = "datasets/embed/sgns.sogou.char"
+        self.embeding_path = os.path.join(self.data_dir, 'data', "embedding_SougouNews")
+        self.embeding_size = 300
+        self.embeding = self.load_embeding()  # 加载词向量
         # 开始加载数据
         self.train = self.read_data(self.train_path)
         self.test = self.read_data(self.test_path)
@@ -81,11 +83,17 @@ class DataSet():
                           count >= self.min_count}  # 剔除词频低于min_count
             word_count = sorted(word_count, key=word_count.get, reverse=True)[:self.vocab_size - 1]
             vocab = {word_count[0]: idx + 2 for idx, word_count in enumerate(word_count)}
+            vocab.update({PAD: 0})
             vocab.update({UNK: 1})
             pkl.dump(vocab, open(vacab_path, 'wb', ))
             return vocab
 
     def read_data(self, file_path):
+        """
+        将数据读入内存中
+        :param file_path:
+        :return:
+        """
         x, y, seq_len = [], [], []  # x,y,x的长度
         with open(file_path, "r", encoding="utf-8")as f:
             for line in f.readlines():
@@ -97,3 +105,19 @@ class DataSet():
                 y.append(label)
 
         return (x, y, seq_len)
+
+    def load_embeding(self):
+        if os.path.exists(self.embeding_path):
+            embeding = np.load(self.embeding_path)
+        else:
+            # 声明全0
+            embeding = np.zeros([self.vocab_size, self.embeding_size],dtype=np.float64)
+            # 读取
+            vocab = self.vocab.keys()
+            with open(self.sogo_embeding_path, "r", encoding="utf-8") as f:
+                for line in f.readlines():
+                    line_split = line.strip().split(" ")
+                    if line_split[0] in vocab:
+                        embeding[self.vocab.get(line_split[0])] = np.asarray(line_split[1:], dtype=np.float64)
+            np.savez_compressed(self.embeding_path, embeding=embeding)
+        return embeding

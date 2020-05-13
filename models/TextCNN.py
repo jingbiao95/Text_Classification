@@ -22,7 +22,7 @@ class Config():
         self.dataset = dataset
 
         # 预训练参数
-        self.embeding_size = 100  # embedding维度大小
+        self.embeding_size = 300  # embedding维度大小
 
         # 模型参数
         self.model_name = "TextCNN"
@@ -44,14 +44,17 @@ class Model(tf.keras.Model):
     """
 
     def __init__(self, config):
+        super(Model,self).__init__()
         self.config = config
-        self.embedding = keras.layers.Embedding(config.vocabulary_size, config.embeding_size)
+        self.embedding = keras.layers.Embedding(config.dataset.vocab_size, config.embeding_size,
+                                                input_length=config.max_len, weights=[config.dataset.embeding],
+                                                trainable=False)
         self.convs = [keras.layers.Conv1D(config.num_filter, kernel_size, strides=1, padding="same", activation='relu')
                       for kernel_size in config.convs]
         self.maxpooling = tf.keras.layers.MaxPool1D()
         self.flattern = tf.keras.layers.Flatten()
         self.dropouts = tf.keras.layers.Dropout(config.dropout)
-        self.output = tf.keras.layers.Dense(config.num_classes, activation="softmax")
+        self.out = tf.keras.layers.Dense(config.num_classes, activation="softmax")
 
     def conv_and_poll(self, x, conv):
         x = conv(x)
@@ -62,10 +65,9 @@ class Model(tf.keras.Model):
         super(Model, self).build(input_shape)
 
     def call(self, x):
-        x = self.input(x)
         x = self.embedding(x)
         x = tf.keras.layers.concatenate([self.conv_and_poll(x, conv) for conv in self.convs], axis=-1)
         x = self.flattern(x)
         x = self.dropouts(x)
-        x = self.dense(x)
+        x = self.out(x)
         return x

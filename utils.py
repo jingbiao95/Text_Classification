@@ -14,7 +14,7 @@ from typing import List, Tuple
 import tensorflow as tf
 
 
-def bulid_data(dataset, data,config) -> List:
+def bulid_data(dataset, data, config) -> List:
     """
     将数据转换为Model指定max_seq_len长度的序列
     :param dataset: 数据集的配置信息
@@ -26,4 +26,3 @@ def bulid_data(dataset, data,config) -> List:
     x = tf.keras.preprocessing.sequence.pad_sequences(x, maxlen=config.max_len)
     y = tf.keras.utils.to_categorical(y, num_classes=dataset.num_classes)
     return x, y
-
